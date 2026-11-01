@@ -1,0 +1,2235 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#FBFBFB" />
+  <title>Dr. Savych — Pattern Lab</title>
+  <meta name="description" content="Генератор патернів зі спільною системою похилих ліній у квадратних модулях." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23182015'/%3E%3Cpath d='M-2 31L7-1h4L2 31zm10 0L17-1h7L15 31zm13 0L30-1h12L28 31z' fill='%23A9B83E'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --ink: #11180f;
+      --muted: #687067;
+      --paper: #f4f5f0;
+      --stage: #d8dad5;
+      --rule: #c8ccc5;
+      --accent: #a9b83e;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--stage);
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { min-height: 100vh; }
+    button, input { font: inherit; }
+    button, input[type="range"], input[type="color"] { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      min-height: 100vh;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 28px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      background: var(--paper);
+      border-right: 1px solid var(--rule);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 27px;
+      line-height: 1;
+      letter-spacing: -.045em;
+      white-space: nowrap;
+    }
+
+    .brand-logo {
+      display: block;
+      width: 210px;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .lab-mark, .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .lab-mark { color: var(--muted); }
+
+    .section {
+      display: grid;
+      gap: 18px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .section-title { margin: 0; }
+
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .format-button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    .distribution-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .format-button, .distribution-button, .zone-ratio-button, .zone-axis-button {
+      min-height: 64px;
+      padding: 10px;
+      display: grid;
+      place-items: center;
+      gap: 5px;
+      color: #566058;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      font-weight: 760;
+    }
+
+    .format-button small, .distribution-button small, .zone-ratio-button small, .zone-axis-button small {
+      color: #89908a;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .format-button:hover, .distribution-button:hover, .zone-ratio-button:hover, .zone-axis-button:hover { border-color: #7b837d; }
+    .format-button.active, .distribution-button.active, .zone-ratio-button.active, .zone-axis-button.active { color: #fff; background: var(--ink); border-color: var(--ink); }
+    .format-button.active small, .distribution-button.active small, .zone-ratio-button.active small, .zone-axis-button.active small { color: rgba(255,255,255,.62); }
+
+    .zone-ratio-grid, .zone-axis-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .zone-background-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .zone-background-button {
+      min-width: 0;
+      min-height: 64px;
+      padding: 9px 6px;
+      display: grid;
+      place-items: center;
+      gap: 6px;
+      color: #566058;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .zone-background-button:hover { border-color: #7b837d; }
+    .zone-background-button.active {
+      color: var(--ink);
+      border-color: var(--ink);
+      box-shadow: 0 0 0 1px var(--ink);
+    }
+
+    .zone-background-swatch {
+      width: 26px;
+      height: 26px;
+      border: 1px solid rgba(13, 33, 26, .18);
+      border-radius: 4px;
+      background: var(--swatch);
+    }
+
+    .zone-ratio-button, .zone-axis-button { min-height: 56px; }
+    .zone-ratio-button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    .text-zone-options {
+      display: grid;
+      gap: 18px;
+    }
+
+    .text-zone-options[hidden] { display: none; }
+
+    .control { display: grid; gap: 9px; }
+
+    .control-line, .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    label { font-size: 14px; font-weight: 650; }
+
+    .value {
+      color: var(--muted);
+      font: 650 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 20px;
+      margin: 0;
+      accent-color: #71811a;
+    }
+
+    .hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .color-row {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 9px;
+    }
+
+    input[type="color"] {
+      width: 40px;
+      height: 40px;
+      padding: 3px;
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+    }
+
+    .hex-input {
+      min-height: 40px;
+      width: 100%;
+      padding: 0 11px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      outline: none;
+      font: 650 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .hex-input:focus {
+      border-color: #71811a;
+      box-shadow: 0 0 0 3px rgba(113,129,26,.12);
+    }
+
+    .switch {
+      width: 44px;
+      height: 24px;
+      padding: 3px;
+      border: 0;
+      border-radius: 999px;
+      background: #bec4bb;
+    }
+
+    .switch::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: transform .18s ease;
+    }
+
+    .switch[aria-checked="true"] { background: #71811a; }
+    .switch[aria-checked="true"]::after { transform: translateX(20px); }
+
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .button {
+      min-height: 42px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--ink);
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .button:hover { color: #fff; background: var(--ink); }
+    .button.primary { color: #fff; background: var(--ink); }
+    .button.primary:hover { background: #263021; }
+
+    .main {
+      min-width: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--stage);
+    }
+
+    .toolbar {
+      min-height: 70px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(242,243,239,.8);
+      border-bottom: 1px solid #c5c9c3;
+      backdrop-filter: blur(12px);
+    }
+
+    .toolbar-title { font-size: 14px; font-weight: 760; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font: 650 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #71811a; }
+
+    .workspace {
+      flex: 1;
+      min-height: 0;
+      padding: clamp(24px,4vw,64px);
+      display: grid;
+      place-items: center;
+      overflow: auto;
+    }
+
+    .canvas-frame {
+      width: min(100%, 1360px);
+      display: grid;
+      gap: 12px;
+    }
+
+    .canvas-wrap {
+      width: 100%;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 22px 60px rgba(28,37,27,.16);
+    }
+
+    #pattern-svg { display: block; width: 100%; height: auto; }
+
+    .canvas-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #687168;
+      font: 650 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 30;
+      padding: 11px 14px;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 680;
+      opacity: 0;
+      transform: translateY(16px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 880px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { min-height: auto; max-height: none; border-right: 0; border-bottom: 1px solid var(--rule); }
+      .main { min-height: auto; }
+      .workspace { min-height: 58vh; }
+    }
+
+    @media (max-width: 520px) {
+      .sidebar { padding: 22px 18px; }
+      .toolbar { padding: 14px 18px; }
+      .workspace { padding: 24px 16px 36px; }
+      .canvas-meta { flex-direction: column; gap: 4px; }
+    }
+  </style>
+  <style id="interface-refresh">
+    :root {
+      --ink: #081d1d;
+      --muted: #657576;
+      --paper: rgba(250, 253, 253, .94);
+      --stage: transparent;
+      --rule: rgba(8, 29, 29, .12);
+      --accent: #00bfa6;
+      background: #fbfbfb;
+    }
+
+    html, body { width: 100%; }
+
+    body {
+      position: relative;
+      padding: clamp(12px, 2.8vw, 38px);
+      overflow: hidden;
+      background: #fbfbfb;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: 0;
+      border-radius: 50%;
+      filter: blur(6px);
+      display: none;
+      pointer-events: none;
+    }
+
+    body::before {
+      width: 34vw;
+      height: 34vw;
+      left: 32%;
+      top: 13%;
+      background: radial-gradient(circle at 34% 38%, rgba(255, 191, 120, .7), rgba(255, 146, 175, .42) 37%, rgba(118, 165, 255, .2) 68%, transparent 72%);
+      opacity: .58;
+    }
+
+    body::after {
+      width: 25vw;
+      height: 25vw;
+      right: -4%;
+      top: -4%;
+      background: rgba(255, 255, 255, .32);
+      opacity: .7;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(1680px, 100%);
+      height: calc(100vh - clamp(24px, 5.6vw, 76px));
+      min-height: 0;
+      margin: 0 auto;
+      grid-template-columns: 390px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid #e8e8e8;
+      border-radius: clamp(15px, 2vw, 28px);
+      background: #fbfbfb;
+      box-shadow: 0 24px 70px rgba(8, 29, 29, .1), inset 0 1px 0 #fff;
+    }
+
+    .sidebar {
+      width: 390px;
+      min-height: 0;
+      max-height: none;
+      height: 100%;
+      padding: 24px 20px 26px;
+      gap: 22px;
+      background: #fbfbfb;
+      border-right: 1px solid rgba(8, 29, 29, .1);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(8, 29, 29, .25) transparent;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(8, 29, 29, .2); border-radius: 999px; }
+
+    .brand-row {
+      padding: 3px 0 1px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      text-align: center;
+    }
+
+    .brand {
+      color: var(--ink);
+      font-size: 29px;
+      letter-spacing: -.055em;
+    }
+
+    .lab-mark {
+      color: #829091;
+      font-size: 10px;
+      letter-spacing: .19em;
+    }
+
+    .section {
+      gap: 14px;
+      padding-top: 18px;
+      border-top-color: rgba(8, 29, 29, .1);
+    }
+
+    .section-title {
+      color: #748183;
+      font-size: 10px;
+      letter-spacing: .17em;
+    }
+
+    .format-grid,
+    .distribution-grid,
+    .zone-ratio-grid,
+    .zone-axis-grid,
+    .button-row { gap: 7px; }
+
+    .format-button,
+    .distribution-button,
+    .zone-ratio-button,
+    .zone-axis-button {
+      min-height: 54px;
+      padding: 9px 8px;
+      color: #516061;
+      background: rgba(255, 255, 255, .72);
+      border-color: rgba(8, 29, 29, .13);
+      border-radius: 6px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+      transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+    }
+
+    .format-button:hover,
+    .distribution-button:hover,
+    .zone-ratio-button:hover,
+    .zone-axis-button:hover {
+      border-color: rgba(8, 29, 29, .38);
+      transform: translateY(-1px);
+    }
+
+    .format-button.active,
+    .distribution-button.active,
+    .zone-ratio-button.active,
+    .zone-axis-button.active {
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--ink);
+      box-shadow: 0 7px 18px rgba(8, 29, 29, .16);
+    }
+
+    .format-button small,
+    .distribution-button small,
+    .zone-ratio-button small,
+    .zone-axis-button small { font-size: 10px; }
+
+    .zone-ratio-button,
+    .zone-axis-button { min-height: 51px; }
+
+    .control { gap: 8px; }
+    label { color: #304142; font-size: 14px; font-weight: 680; }
+    .value { color: #758485; }
+    .hint { color: #7b898a; font-size: 12px; }
+
+    input[type="range"] {
+      height: 18px;
+      appearance: none;
+      background: transparent;
+      accent-color: var(--ink);
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(8, 29, 29, .72);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 15px;
+      height: 15px;
+      margin-top: -6px;
+      appearance: none;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(8, 29, 29, .2);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(8, 29, 29, .72);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    input[type="color"] {
+      border-color: rgba(8, 29, 29, .13);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .hex-input {
+      border-color: rgba(8, 29, 29, .13);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .78);
+    }
+
+    .hex-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 191, 166, .12);
+    }
+
+    .switch { width: 42px; height: 23px; background: #cad4d4; }
+    .switch::after { width: 17px; height: 17px; }
+    .switch[aria-checked="true"] { background: var(--ink); }
+    .switch[aria-checked="true"]::after { transform: translateX(19px); }
+
+    .button {
+      min-height: 42px;
+      border-color: rgba(8, 29, 29, .72);
+      border-radius: 6px;
+      transition: color .16s ease, background .16s ease, transform .16s ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button.primary { background: var(--ink); }
+    .button.primary:hover { background: #143331; }
+
+    .main {
+      min-height: 0;
+      background: #fbfbfb;
+    }
+
+    .toolbar {
+      min-height: 62px;
+      padding: 18px 24px 12px;
+      background: transparent;
+      border-bottom: 0;
+      backdrop-filter: none;
+    }
+
+    .toolbar-title {
+      color: rgba(8, 29, 29, .76);
+      font-size: 13px;
+      letter-spacing: .01em;
+    }
+
+    .status {
+      padding: 9px 12px;
+      color: rgba(8, 29, 29, .67);
+      background: rgba(255, 255, 255, .52);
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(42, 81, 111, .08);
+    }
+
+    .status-dot { background: var(--accent); }
+
+    .workspace {
+      padding: 0 20px 20px;
+      overflow: hidden;
+    }
+
+    .canvas-frame {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      padding: clamp(10px, 1.35vw, 20px);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #f3f3f3;
+      border: 1px solid #e8e8e8;
+      border-radius: clamp(11px, 1.5vw, 19px);
+      box-shadow: inset 0 1px 0 #fff, 0 18px 48px rgba(8, 29, 29, .07);
+    }
+
+    #pattern-svg {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 4px;
+      box-shadow: 0 20px 48px rgba(20, 48, 48, .18);
+    }
+
+    .canvas-meta {
+      min-height: 28px;
+      padding: 0 7px;
+      align-items: center;
+      color: rgba(8, 29, 29, .58);
+      font-size: 10px;
+    }
+
+    .toast {
+      right: clamp(22px, 4vw, 48px);
+      bottom: clamp(22px, 4vw, 48px);
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(8, 29, 29, .2);
+    }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 360px minmax(0, 1fr); }
+      .sidebar { width: 360px; padding-inline: 17px; }
+    }
+
+    @media (max-width: 880px) {
+      body { padding: 10px; overflow: auto; }
+      body::before { width: 70vw; height: 70vw; left: 15%; top: 28%; }
+      .app {
+        height: auto;
+        min-height: calc(100vh - 20px);
+        grid-template-columns: 1fr;
+        border-radius: 14px;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: none;
+        border-right: 0;
+        border-bottom: 1px solid rgba(8, 29, 29, .1);
+      }
+      .main { min-height: 72vh; }
+      .workspace { min-height: 62vh; overflow: visible; }
+      .canvas-wrap { min-height: 55vh; }
+      #pattern-svg { max-height: 58vh; }
+    }
+
+    @media (max-width: 520px) {
+      .sidebar { padding: 21px 16px 24px; }
+      .toolbar { padding: 16px 17px 10px; }
+      .workspace { padding: 0 12px 14px; }
+      .canvas-meta { padding-inline: 3px; }
+      .status { padding: 8px 10px; }
+    }
+  </style>
+  <style id="client-interface">
+    :root {
+      --ink: #0d211a;
+      --muted: #78837f;
+      --rule: #e3e7e4;
+      --paper: #fbfbfb;
+      --accent: #8aa8e5;
+    }
+
+    body { padding: 20px; background: #f4f5f3; }
+
+    .app {
+      width: min(1740px, 100%);
+      height: calc(100vh - 40px);
+      grid-template-columns: 410px minmax(0, 1fr);
+      border: 0;
+      border-radius: 24px;
+      box-shadow: 0 20px 70px rgba(13, 33, 26, .09);
+    }
+
+    .sidebar {
+      width: 410px;
+      padding: 30px 22px 32px;
+      gap: 16px;
+      background: #fbfbfb;
+      border-right: 1px solid var(--rule);
+    }
+
+    .brand-row {
+      align-items: flex-start;
+      gap: 7px;
+      text-align: left;
+    }
+
+    .brand { font-size: 31px; }
+    .lab-mark { font-size: 10px; letter-spacing: .22em; }
+
+    .sidebar-intro {
+      margin: 0 0 8px;
+      max-width: 315px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .section {
+      gap: 20px;
+      padding: 20px 18px 22px;
+      background: #fff;
+      border: 1px solid #e1e6e3;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(13, 33, 26, .035);
+    }
+
+    .section-title {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .09em;
+      line-height: 1.15;
+    }
+
+    .control { gap: 12px; }
+    .control + .control, .control + .switch-row, .switch-row + .control { margin-top: 4px; }
+    label { color: #263a33; font-size: 14px; font-weight: 700; }
+    .hint { color: #87918d; font-size: 12px; line-height: 1.5; }
+
+    .format-grid,
+    .distribution-grid,
+    .zone-ratio-grid,
+    .zone-axis-grid { gap: 10px; }
+
+    .format-button,
+    .distribution-button,
+    .zone-ratio-button,
+    .zone-axis-button {
+      min-height: 68px;
+      padding: 13px 14px;
+      place-items: start;
+      align-content: center;
+      gap: 5px;
+      text-align: left;
+      color: #45534e;
+      background: #fafbfa;
+      border: 1px solid #e1e6e3;
+      border-radius: 12px;
+      box-shadow: none;
+    }
+
+    .format-button span,
+    .distribution-button span,
+    .zone-ratio-button span,
+    .zone-axis-button span { font-size: 14px; line-height: 1.2; }
+
+    .format-button small,
+    .distribution-button small,
+    .zone-ratio-button small,
+    .zone-axis-button small { color: #8b9591; font-size: 10px; line-height: 1.25; }
+
+    .format-button:hover,
+    .distribution-button:hover,
+    .zone-ratio-button:hover,
+    .zone-axis-button:hover {
+      border-color: #9aa6a1;
+      background: #fff;
+      transform: none;
+    }
+
+    .format-button.active,
+    .distribution-button.active,
+    .zone-ratio-button.active,
+    .zone-axis-button.active {
+      color: #fff;
+      background: var(--ink);
+      border-color: var(--ink);
+      box-shadow: none;
+    }
+
+    .format-button.active small,
+    .distribution-button.active small,
+    .zone-ratio-button.active small,
+    .zone-axis-button.active small { color: rgba(255,255,255,.64); }
+
+    .distribution-button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .zone-axis-button { min-height: 76px; }
+    .zone-ratio-button { min-height: 58px; }
+
+    .control-line { align-items: baseline; }
+    .value { color: #56645f; font-size: 12px; }
+
+    input[type="range"] { height: 24px; }
+    input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: #d9dfdc; }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      margin-top: -7px;
+      border: 4px solid var(--ink);
+      background: #fff;
+      box-shadow: none;
+    }
+
+    .switch-row {
+      min-height: 38px;
+      padding: 2px 0;
+    }
+
+    .switch-row[hidden] { display: none; }
+
+    .switch { width: 46px; height: 26px; padding: 3px; background: #d7ddda; }
+    .switch::after { width: 20px; height: 20px; box-shadow: none; }
+    .switch[aria-checked="true"]::after { transform: translateX(20px); }
+
+    .text-zone-options { gap: 22px; padding-top: 8px; }
+
+    .color-row { grid-template-columns: 48px 1fr; gap: 10px; }
+    input[type="color"] { width: 48px; height: 46px; border-radius: 10px; }
+    .hex-input { min-height: 46px; border-radius: 10px; padding-inline: 14px; }
+
+    .button-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .button {
+      min-height: 50px;
+      padding: 0 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      box-shadow: none;
+    }
+    .button:hover { transform: none; }
+    .button.primary { color: #fff; background: var(--ink); border-color: var(--ink); }
+    .button-reset {
+      grid-column: 1 / -1;
+      min-height: 42px;
+      color: #6d7974;
+      border-color: transparent;
+    }
+    .button-reset:hover { color: var(--ink); background: #f0f3f1; }
+
+    .main { background: #fbfbfb; }
+    .toolbar { min-height: 74px; padding: 22px 30px 14px; }
+    .toolbar-title { color: var(--ink); font-size: 15px; }
+    .status { padding: 8px 11px; background: #f3f5f4; border: 0; box-shadow: none; }
+    .status-dot { background: #75a486; }
+    .workspace { padding: 0 30px 30px; }
+    .canvas-wrap { border-radius: 18px; background: #f0f2f0; box-shadow: inset 0 0 0 1px #e5e8e6; }
+    #pattern-svg { border-radius: 2px; box-shadow: 0 16px 42px rgba(13, 33, 26, .14); }
+    .canvas-meta { color: #7d8884; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 370px minmax(0, 1fr); }
+      .sidebar { width: 370px; padding-inline: 18px; }
+    }
+
+    @media (max-width: 880px) {
+      body { padding: 10px; }
+      .app { height: auto; min-height: calc(100vh - 20px); grid-template-columns: 1fr; border-radius: 16px; }
+      .sidebar { width: 100%; padding: 28px 22px 32px; }
+      .sidebar-intro { max-width: 520px; }
+      .workspace { padding: 0 16px 18px; }
+    }
+
+    @media (max-width: 520px) {
+      .section { padding: 18px 16px 20px; }
+      .format-button, .distribution-button { min-height: 62px; }
+      .toolbar { padding: 18px 18px 12px; }
+      .status span:last-child { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand-row">
+        <img class="brand-logo" src="dr-savych-logotype-dark-green.svg" alt="Dr. Savych" />
+        <div class="lab-mark">Pattern Lab</div>
+      </div>
+      <p class="sidebar-intro">Оберіть формат, композицію та кольори — результат одразу з’явиться праворуч.</p>
+
+      <section class="section" aria-labelledby="format-heading">
+        <h2 class="section-title" id="format-heading">Формат</h2>
+        <div class="format-grid">
+          <button class="format-button active" type="button" data-ratio="1:1">
+            <span>Квадрат</span><small>1080 × 1080</small>
+          </button>
+          <button class="format-button" type="button" data-ratio="4:5">
+            <span>Пост Instagram 4:5</span><small>1080 × 1350</small>
+          </button>
+          <button class="format-button" type="button" data-ratio="9:16">
+            <span>Сторіс Instagram 9:16</span><small>1080 × 1920</small>
+          </button>
+          <button class="format-button" type="button" data-ratio="16:9">
+            <span>Слайд 16:9</span><small>1920 × 1080</small>
+          </button>
+          <button class="format-button" type="button" data-ratio="a4">
+            <span>A4</span><small>210 × 297 мм</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="structure-heading">
+        <h2 class="section-title" id="structure-heading">Композиція</h2>
+
+        <div class="control">
+          <label>Тип побудови</label>
+          <div class="distribution-grid">
+            <button class="distribution-button active" type="button" data-distribution="rows" aria-pressed="true">
+              <span>Горизонталь</span><small>Зверху вниз</small>
+            </button>
+            <button class="distribution-button" type="button" data-distribution="matrix" aria-pressed="false">
+              <span>Діагональ</span><small>По клітинках</small>
+            </button>
+            <button class="distribution-button" type="button" data-distribution="center" aria-pressed="false">
+              <span>Центральна</span><small>Симетричні шари</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="control">
+          <div class="control-line">
+            <label for="density" id="density-label">Масштаб патерну</label>
+            <output class="value" id="grid-value">3 × 3</output>
+          </div>
+          <input id="density" type="range" min="3" max="7" step="2" value="3" />
+          <p class="hint" id="density-hint">Перетягніть повзунок, щоб змінити масштаб патерна.</p>
+        </div>
+
+        <div class="switch-row" id="center-invert-row" hidden>
+          <label for="center-invert">Інвертувати центр</label>
+          <button class="switch" id="center-invert" type="button" role="switch" aria-checked="false" aria-label="Інвертувати товщину центральної композиції"></button>
+        </div>
+
+        <div class="switch-row">
+          <label for="show-grid" id="show-grid-label">Показати сітку</label>
+          <button class="switch" id="show-grid" type="button" role="switch" aria-checked="false" aria-label="Показати конструктивну сітку"></button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="text-zone-heading">
+        <h2 class="section-title" id="text-zone-heading">Вільна зона</h2>
+
+        <div class="switch-row">
+          <label for="text-zone-enabled">Залишити місце для тексту</label>
+          <button class="switch" id="text-zone-enabled" type="button" role="switch" aria-checked="false" aria-label="Додати чисту зону для тексту"></button>
+        </div>
+
+        <div class="text-zone-options" id="text-zone-options" hidden>
+          <div class="switch-row">
+            <label for="text-zone-invert">Інвертувати розташування</label>
+            <button class="switch" id="text-zone-invert" type="button" role="switch" aria-checked="false" aria-label="Перенести чисту зону для тексту вниз"></button>
+          </div>
+
+          <p class="hint" id="text-zone-hint">Чиста зона зверху, патерн знизу.</p>
+
+          <div class="control">
+            <label>Колір вільної зони</label>
+            <div class="zone-background-grid">
+              <button class="zone-background-button" type="button" data-text-zone-background="#FBFBFB" aria-pressed="false">
+                <span class="zone-background-swatch" style="--swatch:#FBFBFB"></span><span>Білий</span>
+              </button>
+              <button class="zone-background-button active" type="button" data-text-zone-background="#0D211A" aria-pressed="true">
+                <span class="zone-background-swatch" style="--swatch:#0D211A"></span><span>Зелений</span>
+              </button>
+              <button class="zone-background-button" type="button" data-text-zone-background="#8AA8E5" aria-pressed="false">
+                <span class="zone-background-swatch" style="--swatch:#8AA8E5"></span><span>Блакитний</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="control">
+            <label>Розташування</label>
+            <div class="zone-axis-grid">
+              <button class="zone-axis-button active" type="button" data-text-zone-axis="horizontal" aria-pressed="true">
+                <span>Зверху або знизу</span><small>Горизонтальна зона</small>
+              </button>
+              <button class="zone-axis-button" type="button" data-text-zone-axis="vertical" aria-pressed="false">
+                <span>Ліворуч або праворуч</span><small>Вертикальна зона</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="control">
+            <label>Розмір зони</label>
+            <div class="zone-ratio-grid">
+              <button class="zone-ratio-button active" type="button" data-text-zone-ratio="1:1" aria-pressed="true">
+                <span>1:1</span><small>50% / 50%</small>
+              </button>
+              <button class="zone-ratio-button" type="button" data-text-zone-ratio="1:3" aria-pressed="false">
+                <span>1:3</span><small>25% / 75%</small>
+              </button>
+              <button class="zone-ratio-button" type="button" data-text-zone-ratio="3:1" aria-pressed="false">
+                <span>3:1</span><small>75% / 25%</small>
+              </button>
+              <button class="zone-ratio-button" type="button" data-text-zone-ratio="3:2" aria-pressed="false">
+                <span>3:2</span><small>60% / 40%</small>
+              </button>
+              <button class="zone-ratio-button" type="button" data-text-zone-ratio="2:3" aria-pressed="false">
+                <span>2:3</span><small>40% / 60%</small>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="color-heading">
+        <h2 class="section-title" id="color-heading">Кольори</h2>
+
+        <div class="control">
+          <label for="background-color">Тло</label>
+          <div class="color-row">
+            <input id="background-color" type="color" value="#0D211A" />
+            <input id="background-hex" class="hex-input" type="text" value="#0D211A" maxlength="7" spellcheck="false" />
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="line-color">Лінії</label>
+          <div class="color-row">
+            <input id="line-color" type="color" value="#8AA8E5" />
+            <input id="line-hex" class="hex-input" type="text" value="#8AA8E5" maxlength="7" spellcheck="false" />
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="export-heading">
+        <h2 class="section-title" id="export-heading">Завантажити</h2>
+        <div class="button-row">
+          <button class="button primary" id="download-png" type="button">Завантажити PNG ×2</button>
+          <button class="button" id="download-svg" type="button">Завантажити SVG</button>
+          <button class="button button-reset" id="reset" type="button">Скинути налаштування</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="toolbar">
+        <div class="toolbar-title" id="toolbar-title">Створіть свій патерн</div>
+        <div class="status"><span class="status-dot"></span><span>Прев’ю наживо</span></div>
+      </header>
+
+      <section class="workspace" aria-label="Прев’ю патерна">
+        <div class="canvas-frame">
+          <div class="canvas-wrap">
+            <svg id="pattern-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Патерн із похилих ліній у квадратній модульній сітці"></svg>
+          </div>
+          <div class="canvas-meta">
+            <span id="size-readout">Квадрат · 1080 × 1080</span>
+            <span id="construction-readout">3 × 3 модулі · 8 ліній на модуль</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const formats = {
+      "1:1": {
+        label: "Квадрат",
+        width: 1080,
+        height: 1080,
+        ratioWidth: 1,
+        ratioHeight: 1,
+        displaySize: "1080 × 1080"
+      },
+      "4:5": {
+        label: "Пост Instagram 4:5",
+        width: 1080,
+        height: 1350,
+        ratioWidth: 4,
+        ratioHeight: 5,
+        displaySize: "1080 × 1350"
+      },
+      "9:16": {
+        label: "Сторіс Instagram 9:16",
+        width: 1080,
+        height: 1920,
+        ratioWidth: 9,
+        ratioHeight: 16,
+        displaySize: "1080 × 1920"
+      },
+      "16:9": {
+        label: "Слайд 16:9",
+        width: 1920,
+        height: 1080,
+        ratioWidth: 16,
+        ratioHeight: 9,
+        displaySize: "1920 × 1080"
+      },
+      "a4": {
+        label: "A4",
+        width: 2480,
+        height: 3508,
+        ratioWidth: 210,
+        ratioHeight: 297,
+        displaySize: "210 × 297 мм",
+        svgWidth: "210mm",
+        svgHeight: "297mm",
+        pngNote: "A4 · 2480 × 3508 · 300 dpi"
+      }
+    };
+
+    const defaults = {
+      ratio: "1:1",
+      densities: {
+        "1:1": { rows: 3, matrix: 3, center: 7 },
+        "4:5": { rows: 4, matrix: 4, center: 7 },
+        "9:16": { rows: 3, matrix: 3, center: 7 },
+        "16:9": { rows: 3, matrix: 3, center: 7 },
+        "a4": { rows: 3, matrix: 3, center: 7 }
+      },
+      distribution: "rows",
+      invertCenter: false,
+      textZoneEnabled: false,
+      textZoneAxis: "horizontal",
+      textZoneRatio: "1:1",
+      invertTextZone: false,
+      textZoneBackground: "#0D211A",
+      background: "#0D211A",
+      line: "#8AA8E5",
+      showGrid: false
+    };
+
+    const state = {
+      ratio: defaults.ratio,
+      densities: cloneDensities(),
+      distribution: defaults.distribution,
+      invertCenter: defaults.invertCenter,
+      textZoneEnabled: defaults.textZoneEnabled,
+      textZoneAxis: defaults.textZoneAxis,
+      textZoneRatio: defaults.textZoneRatio,
+      invertTextZone: defaults.invertTextZone,
+      textZoneBackground: defaults.textZoneBackground,
+      background: defaults.background,
+      line: defaults.line,
+      showGrid: defaults.showGrid
+    };
+
+    const STRIPES_PER_MODULE = 8;
+    const ANGLE_FROM_VERTICAL = 22;
+    const THICKNESS_LEVELS = 7;
+    const MIN_STROKE_RATIO = 0.05;
+    const MAX_STROKE_RATIO = 0.82;
+    const CLIP_BLEED = 1.5;
+    const TEXT_ZONE_RATIOS = {
+      "1:1": { text: 1, pattern: 1 },
+      "1:3": { text: 1, pattern: 3 },
+      "3:1": { text: 3, pattern: 1 },
+      "3:2": { text: 3, pattern: 2 },
+      "2:3": { text: 2, pattern: 3 },
+    };
+    const $ = id => document.getElementById(id);
+    const svg = $("pattern-svg");
+    let renderFrame = 0;
+    let toastTimer;
+
+    function format() {
+      return formats[state.ratio];
+    }
+
+    function cloneDensities() {
+      return Object.fromEntries(
+        Object.entries(defaults.densities).map(([ratio, values]) => [ratio, { ...values }])
+      );
+    }
+
+    function density() {
+      return state.densities[state.ratio][state.distribution];
+    }
+
+    function limitsPostRowHalfZone() {
+      return state.ratio === "4:5" &&
+        state.distribution === "rows" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        state.textZoneRatio === "1:1";
+    }
+
+    function limitsPostRowQuarterZone() {
+      return state.ratio === "4:5" &&
+        state.distribution === "rows" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        state.textZoneRatio === "3:1";
+    }
+
+    function limitsPostRowVerticalZone() {
+      return state.ratio === "4:5" &&
+        state.distribution === "rows" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "vertical";
+    }
+
+    function usesSevenLevelRowGradient() {
+      return state.distribution === "rows" &&
+        state.textZoneEnabled &&
+        !limitsPostRowHalfZone() &&
+        !["3:1", "3:2"].includes(state.textZoneRatio);
+    }
+
+    function usesCompactSlideDiagonalGrid() {
+      return state.ratio === "16:9" &&
+        state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        ["3:1", "3:2"].includes(state.textZoneRatio);
+    }
+
+    function usesTwoColumnNarrowDiagonal() {
+      if (state.distribution !== "matrix" ||
+        !state.textZoneEnabled ||
+        state.textZoneAxis !== "vertical") return false;
+
+      return (["1:1", "4:5"].includes(state.ratio) && ["3:1", "3:2"].includes(state.textZoneRatio)) ||
+        (state.ratio === "4:5" && state.textZoneRatio === "1:1") ||
+        (state.ratio === "9:16" && state.textZoneRatio === "3:1") ||
+        (state.ratio === "a4" && state.textZoneRatio === "3:1");
+    }
+
+    function usesFourColumnStoryDiagonal() {
+      return state.ratio === "9:16" &&
+        state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "vertical" &&
+        state.textZoneRatio === "1:3";
+    }
+
+    function usesThreeColumnStoryDiagonal() {
+      return state.ratio === "9:16" &&
+        state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "vertical" &&
+        state.textZoneRatio === "3:2";
+    }
+
+    function usesTwoRowHorizontalDiagonal() {
+      return state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        state.textZoneRatio === "3:1" &&
+        ["4:5", "9:16", "a4"].includes(state.ratio);
+    }
+
+    function usesThreeRowPostDiagonal() {
+      return state.ratio === "4:5" &&
+        state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        state.textZoneRatio === "3:2";
+    }
+
+    function usesThreeColumnPostDiagonal() {
+      return state.ratio === "4:5" &&
+        state.distribution === "matrix" &&
+        state.textZoneEnabled &&
+        state.textZoneAxis === "vertical" &&
+        state.textZoneRatio === "1:3";
+    }
+
+    function baseDensityOptions() {
+      if (state.distribution === "center") return [5, 7, 9, 11];
+      if (usesCompactSlideDiagonalGrid()) return [2];
+      if (usesFourColumnStoryDiagonal()) return [4];
+      if (usesThreeColumnStoryDiagonal()) return [3];
+      if (usesTwoColumnNarrowDiagonal()) return [2];
+      if (usesTwoRowHorizontalDiagonal()) return [2];
+      if (usesThreeRowPostDiagonal()) return [3];
+      if (usesThreeColumnPostDiagonal()) return [3];
+      if (limitsPostRowQuarterZone()) return [3];
+
+      if (state.distribution === "matrix" && !state.textZoneEnabled) {
+        if (state.ratio === "1:1") return [3, 4];
+        if (state.ratio === "9:16" || state.ratio === "16:9") return [3];
+      }
+
+      let options;
+      if (state.ratio === "4:5") options = [4, 5, 6];
+      else if (state.ratio === "9:16") options = state.distribution === "rows" ? [3, 4] : [3, 5];
+      else if (state.ratio === "16:9" || state.ratio === "a4") options = [3, 5];
+      else options = [3, 5, 7];
+
+      if (state.distribution === "rows" && state.textZoneEnabled) {
+        options = usesSevenLevelRowGradient()
+          ? [...new Set([...options, THICKNESS_LEVELS])]
+          : options.filter(value => value !== THICKNESS_LEVELS);
+      }
+
+      if (limitsPostRowHalfZone()) {
+        options = options.filter(value => value <= 5);
+      }
+
+      if (limitsPostRowVerticalZone()) {
+        options = options.filter(value => value <= 5);
+      }
+
+      return options.sort((a, b) => a - b);
+    }
+
+    function gridDimensionsForDensity(value, pattern = compositionGeometry().pattern) {
+      const widthIsShorter = pattern.width <= pattern.height;
+
+      // Preserve the original adaptive grid for the horizontal and central
+      // compositions. Square-module fitting is a diagonal-only rule.
+      if (state.distribution !== "matrix") {
+        return {
+          cols: widthIsShorter
+            ? value
+            : Math.max(1, Math.round(pattern.width / pattern.height * value)),
+          rows: widthIsShorter
+            ? Math.max(1, Math.round(pattern.height / pattern.width * value))
+            : value
+        };
+      }
+
+      // Without a free zone, use the original adaptive construction: choose
+      // the nearest whole grid and distribute the format mismatch evenly
+      // across every module instead of cropping or stretching edge modules.
+      if (!state.textZoneEnabled) {
+        return {
+          cols: widthIsShorter
+            ? value
+            : Math.max(1, Math.round(pattern.width / pattern.height * value)),
+          rows: widthIsShorter
+            ? Math.max(1, Math.round(pattern.height / pattern.width * value))
+            : value
+        };
+      }
+
+      const horizontalZoneAcrossWidth = state.textZoneEnabled &&
+        state.textZoneAxis === "horizontal" &&
+        !widthIsShorter;
+      return {
+        cols: widthIsShorter
+          ? value
+          : Math.max(1, (horizontalZoneAcrossWidth ? Math.ceil : Math.floor)(pattern.width / pattern.height * value)),
+        rows: widthIsShorter
+          ? Math.max(1, Math.floor(pattern.height / pattern.width * value))
+          : value
+      };
+    }
+
+    function densityOptions() {
+      const options = baseDensityOptions();
+      if (state.distribution === "center") return options;
+      const recommended = options.filter(value => {
+        const { cols, rows } = gridDimensionsForDensity(value);
+        return Math.max(cols, rows) <= 9 &&
+          (state.distribution !== "rows" || rows <= THICKNESS_LEVELS);
+      });
+      if (usesSevenLevelRowGradient() && !recommended.length && options.length) {
+        recommended.push(options[0]);
+      }
+      if (usesSevenLevelRowGradient() && options.includes(THICKNESS_LEVELS) && !recommended.includes(THICKNESS_LEVELS)) {
+        const { cols, rows } = gridDimensionsForDensity(THICKNESS_LEVELS);
+        if (Math.max(cols, rows) <= 9 && rows <= THICKNESS_LEVELS) {
+          recommended.push(THICKNESS_LEVELS);
+        }
+      }
+      recommended.sort((a, b) => a - b);
+      return recommended.length ? recommended : [options[0]];
+    }
+
+    function ensureValidDensity() {
+      const options = densityOptions();
+      const current = density();
+      if (options.includes(current)) return;
+      state.densities[state.ratio][state.distribution] = options.reduce((closest, option) =>
+        Math.abs(option - current) < Math.abs(closest - current) ? option : closest,
+      options[0]);
+    }
+
+    function densityLimits() {
+      const options = densityOptions();
+      return { min: options[0], max: options[options.length - 1] };
+    }
+
+    function normalizeDensity(value, limits = densityLimits()) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return limits.min;
+      const options = densityOptions().filter(option => option >= limits.min && option <= limits.max);
+      return options.reduce((closest, option) =>
+        Math.abs(option - numeric) < Math.abs(closest - numeric) ? option : closest,
+      options[0] ?? limits.min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function validHex(value) {
+      const normalized = String(value).trim().toUpperCase();
+      return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : null;
+    }
+
+    function compositionGeometry() {
+      const current = format();
+      if (!state.textZoneEnabled) {
+        return {
+          pattern: { x: 0, y: 0, width: current.width, height: current.height },
+          text: null
+        };
+      }
+
+      const ratio = TEXT_ZONE_RATIOS[state.textZoneRatio] || TEXT_ZONE_RATIOS[defaults.textZoneRatio];
+      const ratioTotal = ratio.text + ratio.pattern;
+
+      if (state.textZoneAxis === "vertical") {
+        const textWidth = current.width * ratio.text / ratioTotal;
+        const patternWidth = current.width - textWidth;
+
+        // In the row composition a vertical text zone is an overlay, not a
+        // new pattern canvas. Keep the original full-format construction and
+        // cover the requested side with the background colour afterwards.
+        if (state.distribution === "rows") {
+          return {
+            pattern: { x: 0, y: 0, width: current.width, height: current.height },
+            text: {
+              x: state.invertTextZone ? current.width - textWidth : 0,
+              y: 0,
+              width: textWidth,
+              height: current.height
+            }
+          };
+        }
+
+        if (state.invertTextZone) {
+          return {
+            pattern: { x: 0, y: 0, width: patternWidth, height: current.height },
+            text: { x: patternWidth, y: 0, width: textWidth, height: current.height }
+          };
+        }
+
+        return {
+          pattern: { x: textWidth, y: 0, width: patternWidth, height: current.height },
+          text: { x: 0, y: 0, width: textWidth, height: current.height }
+        };
+      }
+
+      const textHeight = current.height * ratio.text / ratioTotal;
+      const patternHeight = current.height - textHeight;
+
+      if (state.invertTextZone) {
+        return {
+          pattern: { x: 0, y: 0, width: current.width, height: patternHeight },
+          text: { x: 0, y: patternHeight, width: current.width, height: textHeight }
+        };
+      }
+
+      return {
+        pattern: { x: 0, y: textHeight, width: current.width, height: patternHeight },
+        text: { x: 0, y: 0, width: current.width, height: textHeight }
+      };
+    }
+
+    function allowedDensities() {
+      return densityOptions();
+    }
+
+    function grid() {
+      let { pattern, text } = compositionGeometry();
+      ensureValidDensity();
+      const modulesOnShortSide = density();
+      const { cols, rows } = gridDimensionsForDensity(modulesOnShortSide, pattern);
+
+      if (state.distribution !== "matrix") {
+        const cellWidth = pattern.width / cols;
+        const cellHeight = pattern.height / rows;
+        return {
+          cols,
+          rows,
+          cellWidth,
+          cellHeight,
+          cellSize: Math.min(cellWidth, cellHeight),
+          offsetX: pattern.x,
+          offsetY: pattern.y,
+          adaptive: Math.abs(cellWidth - cellHeight) > 0.0001,
+          cropped: false,
+          centeredCrop: false,
+          cropRatio: 0,
+          pattern,
+          text
+        };
+      }
+
+      // A full-canvas diagonal uses a uniformly adaptive grid. Every cell
+      // receives the same width and height, so the pattern fills the format
+      // exactly with no blank bands, cropped modules, or distorted last row.
+      if (!state.textZoneEnabled) {
+        const cellWidth = pattern.width / cols;
+        const cellHeight = pattern.height / rows;
+        return {
+          cols,
+          rows,
+          cellWidth,
+          cellHeight,
+          cellSize: Math.min(cellWidth, cellHeight),
+          offsetX: pattern.x,
+          offsetY: pattern.y,
+          adaptive: Math.abs(cellWidth - cellHeight) > 0.0001,
+          cropped: false,
+          centeredCrop: false,
+          cropRatio: 0,
+          pattern,
+          text
+        };
+      }
+
+      const horizontalZone = state.textZoneEnabled && state.textZoneAxis === "horizontal";
+      const verticalZone = state.textZoneEnabled && state.textZoneAxis === "vertical";
+      const verticalDiagonalOverflow = verticalZone && state.distribution === "matrix";
+      const anchorToWidth = (pattern.width <= pattern.height || horizontalZone) &&
+        !verticalDiagonalOverflow;
+      const cellSize = anchorToWidth
+        ? pattern.width / cols
+        : pattern.height / rows;
+      const cellWidth = cellSize;
+      const cellHeight = cellSize;
+      const gridWidth = cols * cellSize;
+      const gridHeight = rows * cellSize;
+      const overflowX = Math.max(0, gridWidth - pattern.width);
+      const overflowY = Math.max(0, gridHeight - pattern.height);
+      const remainderX = Math.max(0, pattern.width - gridWidth);
+      const remainderY = Math.max(0, pattern.height - gridHeight);
+      let offsetX = pattern.x + remainderX / 2;
+      let offsetY = pattern.y + remainderY / 2;
+
+      // Keep every module whole. Any fractional remainder joins the free
+      // zone instead of being cut from the outer row or column.
+      if (horizontalZone) {
+        // Make the free-zone/pattern boundary follow the square grid exactly.
+        // Previously the unused height stayed painted with the base colour,
+        // which appeared as a stripe when the free-zone colour was changed.
+        if (overflowY > 0.0001) {
+          if (state.invertTextZone) {
+            pattern = { ...pattern, height: gridHeight };
+            text = {
+              ...text,
+              y: text.y + overflowY,
+              height: Math.max(0, text.height - overflowY)
+            };
+          } else {
+            pattern = { ...pattern, y: pattern.y - overflowY, height: gridHeight };
+            text = { ...text, height: Math.max(0, text.height - overflowY) };
+          }
+        } else if (remainderY > 0.0001) {
+          if (state.invertTextZone) {
+            pattern = { ...pattern, height: gridHeight };
+            text = {
+              ...text,
+              y: text.y - remainderY,
+              height: text.height + remainderY
+            };
+          } else {
+            pattern = { ...pattern, y: pattern.y + remainderY, height: gridHeight };
+            text = { ...text, height: text.height + remainderY };
+          }
+        }
+        offsetY = pattern.y;
+      } else if (verticalDiagonalOverflow) {
+        // Fill the full height with whole squares. Let the pattern/free-zone
+        // boundary absorb any width mismatch so there is never an uncovered
+        // strip between them and no module is stretched or cropped.
+        if (overflowX > 0.0001) {
+          if (state.invertTextZone) {
+            pattern = { ...pattern, width: gridWidth };
+            text = {
+              ...text,
+              x: text.x + overflowX,
+              width: Math.max(0, text.width - overflowX)
+            };
+          } else {
+            pattern = { ...pattern, x: pattern.x - overflowX, width: gridWidth };
+            text = { ...text, width: Math.max(0, text.width - overflowX) };
+          }
+        } else if (remainderX > 0.0001) {
+          if (state.invertTextZone) {
+            pattern = { ...pattern, width: gridWidth };
+            text = {
+              ...text,
+              x: text.x - remainderX,
+              width: text.width + remainderX
+            };
+          } else {
+            pattern = { ...pattern, x: pattern.x + remainderX, width: gridWidth };
+            text = { ...text, width: text.width + remainderX };
+          }
+        }
+        offsetX = pattern.x;
+        offsetY = pattern.y;
+      } else if (verticalZone) {
+        offsetX = state.invertTextZone
+          ? pattern.x
+          : pattern.x + remainderX;
+      }
+
+      return {
+        cols,
+        rows,
+        cellWidth,
+        cellHeight,
+        cellSize,
+        offsetX,
+        offsetY,
+        adaptive: false,
+        cropped: false,
+        centeredCrop: false,
+        cropRatio: 0,
+        pattern,
+        text
+      };
+    }
+
+    function diagonalLevels(cols, rows) {
+      const diagonalCount = Math.max(1, cols + rows - 1);
+
+      // Give every cell diagonal its own thickness. Quantising all diagonals
+      // into seven shared levels created repeated plateaus followed by larger
+      // jumps near the centre — the visible irregular “staircase”.
+      return Array.from({ length: diagonalCount }, (_, index) => index);
+    }
+
+    function patternMarkup() {
+      const current = format();
+      const { cols, rows, cellWidth, cellHeight, cellSize, offsetX, offsetY, adaptive, cropped, centeredCrop, cropRatio, pattern, text } = grid();
+      // Every module in the active pattern region clips the same stripe geometry. The right edge
+      // of every stripe is fixed; thickness grows only to the left. This
+      // keeps one contour continuous and makes the opposite contour step.
+      const pitch = cellWidth / STRIPES_PER_MODULE;
+      const maxRow = Math.max(1, rows - 1);
+      const tanAngle = Math.tan(ANGLE_FROM_VERTICAL * Math.PI / 180);
+      const levelCount = state.distribution === "matrix"
+        ? Math.max(1, cols + rows - 1)
+        : THICKNESS_LEVELS;
+      const levelShapes = Array.from({ length: levelCount }, () => []);
+      const gridLeft = offsetX;
+      const gridTop = offsetY;
+      const gridWidth = cols * cellWidth;
+
+      if (state.distribution === "rows") {
+        for (let row = 0; row < rows; row++) {
+          const progress = row / maxRow;
+          const level = Math.round(progress * (THICKNESS_LEVELS - 1));
+          const y = gridTop + row * cellHeight;
+          levelShapes[level].push(
+            `<rect x="${(gridLeft - CLIP_BLEED).toFixed(5)}" y="${(y - CLIP_BLEED).toFixed(5)}" ` +
+            `width="${(gridWidth + CLIP_BLEED * 2).toFixed(5)}" ` +
+            `height="${(cellHeight + CLIP_BLEED * 2).toFixed(5)}" />`
+          );
+        }
+      } else if (state.distribution === "matrix") {
+        // Each module receives one thickness. Equal values line up along
+        // cell diagonals. Extra diagonal steps are compensated in the centre
+        // and mirrored on both sides to keep a balanced visual rhythm.
+        const levelByDiagonal = diagonalLevels(cols, rows);
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const level = levelByDiagonal[col + row];
+            const x = gridLeft + col * cellWidth;
+            const y = gridTop + row * cellHeight;
+            levelShapes[level].push(
+              `<rect x="${(x - CLIP_BLEED).toFixed(5)}" y="${(y - CLIP_BLEED).toFixed(5)}" ` +
+              `width="${(cellWidth + CLIP_BLEED * 2).toFixed(5)}" ` +
+              `height="${(cellHeight + CLIP_BLEED * 2).toFixed(5)}" />`
+            );
+          }
+        }
+      } else {
+        // Concentric format layers: every next layer is inset by one full
+        // module from all four edges. On a landscape canvas this creates
+        // nested horizontal rectangles; on a square canvas, nested squares.
+        const maxInset = Math.max(1, Math.floor((Math.min(cols, rows) - 1) / 2));
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const inset = Math.min(col, row, cols - 1 - col, rows - 1 - row);
+            const progress = clamp(inset / maxInset, 0, 1);
+            const baseLevel = Math.round(progress * (THICKNESS_LEVELS - 1));
+            const level = state.invertCenter ? THICKNESS_LEVELS - 1 - baseLevel : baseLevel;
+            const x = gridLeft + col * cellWidth;
+            const y = gridTop + row * cellHeight;
+            levelShapes[level].push(
+              `<rect x="${(x - CLIP_BLEED).toFixed(5)}" y="${(y - CLIP_BLEED).toFixed(5)}" ` +
+              `width="${(cellWidth + CLIP_BLEED * 2).toFixed(5)}" ` +
+              `height="${(cellHeight + CLIP_BLEED * 2).toFixed(5)}" />`
+            );
+          }
+        }
+      }
+
+      const firstStripe = -2;
+      const lastStripe = cols * STRIPES_PER_MODULE + Math.ceil(pattern.height * tanAngle / pitch) + 2;
+      const patternTop = pattern.y;
+      const patternBottom = pattern.y + pattern.height;
+
+      const clips = levelShapes.map((shapes, level) =>
+        `<clipPath id="level-${level}" clipPathUnits="userSpaceOnUse">${shapes.join("")}</clipPath>`
+      );
+      const regionClip = `<clipPath id="pattern-region" clipPathUnits="userSpaceOnUse">` +
+        `<rect x="${pattern.x.toFixed(5)}" y="${pattern.y.toFixed(5)}" ` +
+        `width="${pattern.width.toFixed(5)}" height="${pattern.height.toFixed(5)}" />` +
+        `</clipPath>`;
+
+      const stripeSets = levelShapes.map((shapes, level) => {
+        if (!shapes.length) return "";
+        const progress = levelCount === 1 ? 0.5 : level / (levelCount - 1);
+        const strokeRatio = MIN_STROKE_RATIO + (MAX_STROKE_RATIO - MIN_STROKE_RATIO) * progress;
+        const width = pitch * strokeRatio;
+        const stripes = [];
+
+        for (let index = firstStripe; index <= lastStripe; index++) {
+          const fixedEdgeTop = gridLeft + index * pitch;
+          const fixedEdgeBottom = fixedEdgeTop - pattern.height * tanAngle;
+          const openEdgeTop = fixedEdgeTop - width;
+          const openEdgeBottom = fixedEdgeBottom - width;
+          stripes.push(
+            `<path d="M ${openEdgeTop.toFixed(5)} ${patternTop.toFixed(5)} ` +
+            `L ${fixedEdgeTop.toFixed(5)} ${patternTop.toFixed(5)} ` +
+            `L ${fixedEdgeBottom.toFixed(5)} ${patternBottom.toFixed(5)} ` +
+            `L ${openEdgeBottom.toFixed(5)} ${patternBottom.toFixed(5)} Z" />`
+          );
+        }
+
+        return `<g id="stripes-${level}">${stripes.join("")}</g>`;
+      });
+
+      const layers = levelShapes.map((shapes, level) => {
+        if (!shapes.length) return "";
+        return `<use href="#stripes-${level}" clip-path="url(#level-${level})" fill="${state.line}" />`;
+      });
+
+      let gridLines = "";
+      if (state.showGrid) {
+        const lines = [];
+        for (let col = 1; col < cols; col++) {
+          const x = offsetX + col * cellWidth;
+          lines.push(
+            `<line x1="${x}" y1="${pattern.y}" x2="${x}" y2="${pattern.y + pattern.height}" />`
+          );
+        }
+        for (let row = 1; row < rows; row++) {
+          const y = offsetY + row * cellHeight;
+          lines.push(
+            `<line x1="${pattern.x}" y1="${y}" x2="${pattern.x + pattern.width}" y2="${y}" />`
+          );
+        }
+        gridLines = `<g fill="none" stroke="#FF3B30" stroke-width="${Math.max(2, cellSize * 0.012)}" opacity="0.9">${lines.join("")}</g>`;
+      }
+
+      const textZoneOverlay = text
+        ? `<rect x="${text.x.toFixed(5)}" y="${text.y.toFixed(5)}" ` +
+          `width="${text.width.toFixed(5)}" height="${text.height.toFixed(5)}" fill="${state.textZoneBackground}" />`
+        : "";
+
+      return {
+        cols,
+        rows,
+        cellSize,
+        cellWidth,
+        cellHeight,
+        adaptive,
+        cropped,
+        centeredCrop,
+        cropRatio,
+        pattern,
+        markup: `<rect width="${current.width}" height="${current.height}" fill="${state.background}" />` +
+          `<defs>${regionClip}${clips.join("")}${stripeSets.join("")}</defs>` +
+          `<g clip-path="url(#pattern-region)">` +
+          `<g shape-rendering="geometricPrecision">${layers.join("")}</g>${gridLines}</g>` +
+          textZoneOverlay
+      };
+    }
+
+    function render() {
+      cancelAnimationFrame(renderFrame);
+      renderFrame = requestAnimationFrame(() => {
+        const current = format();
+        const result = patternMarkup();
+        svg.setAttribute("viewBox", `0 0 ${current.width} ${current.height}`);
+        svg.setAttribute("width", current.width);
+        svg.setAttribute("height", current.height);
+        svg.style.aspectRatio = `${current.ratioWidth} / ${current.ratioHeight}`;
+        svg.innerHTML = result.markup;
+
+        $("grid-value").textContent = `${result.cols} × ${result.rows}`;
+        $("size-readout").textContent = `${current.label} · ${current.displaySize}`;
+        const zonePosition = state.textZoneAxis === "vertical"
+          ? state.invertTextZone ? "праворуч" : "ліворуч"
+          : state.invertTextZone ? "знизу" : "зверху";
+        $("construction-readout").textContent = `${result.cols} × ${result.rows} сітка` +
+          `${state.textZoneEnabled ? ` · вільна зона ${state.textZoneRatio} ${zonePosition}` : ""}`;
+        $("toolbar-title").textContent = "Створіть свій патерн";
+        svg.setAttribute(
+          "aria-label",
+          "Патерн із похилих ліній у модульній сітці без обрізаних модулів"
+        );
+        $("show-grid").setAttribute("aria-checked", String(state.showGrid));
+        $("show-grid-label").textContent = "Показати сітку";
+        $("show-grid").setAttribute("aria-label", "Показати конструктивну сітку");
+
+        document.querySelectorAll(".format-button").forEach(button => {
+          button.classList.toggle("active", button.dataset.ratio === state.ratio);
+        });
+
+        document.querySelectorAll(".zone-background-button").forEach(button => {
+          const active = button.dataset.textZoneBackground === state.textZoneBackground;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+
+        document.querySelectorAll(".distribution-button").forEach(button => {
+          const active = button.dataset.distribution === state.distribution;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+
+        const invertRow = $("center-invert-row");
+        invertRow.hidden = state.distribution !== "center";
+        $("center-invert").setAttribute("aria-checked", String(state.invertCenter));
+
+        $("text-zone-enabled").setAttribute("aria-checked", String(state.textZoneEnabled));
+        $("text-zone-options").hidden = !state.textZoneEnabled;
+        $("text-zone-invert").setAttribute("aria-checked", String(state.invertTextZone));
+        document.querySelectorAll(".zone-axis-button").forEach(button => {
+          const active = button.dataset.textZoneAxis === state.textZoneAxis;
+          button.disabled = false;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        $("text-zone-invert").setAttribute(
+          "aria-label",
+          state.textZoneAxis === "vertical"
+            ? state.invertTextZone
+              ? "Перенести чисту зону для тексту ліворуч"
+              : "Перенести чисту зону для тексту праворуч"
+            : state.invertTextZone
+              ? "Перенести чисту зону для тексту вгору"
+              : "Перенести чисту зону для тексту вниз"
+        );
+        $("text-zone-hint").textContent = state.textZoneAxis === "vertical"
+          ? state.invertTextZone
+            ? "Патерн ліворуч, чиста зона праворуч."
+            : "Чиста зона ліворуч, патерн праворуч."
+          : state.invertTextZone
+            ? "Патерн зверху, чиста зона знизу."
+            : "Чиста зона зверху, патерн знизу.";
+
+        document.querySelectorAll(".zone-ratio-button").forEach(button => {
+          const active = button.dataset.textZoneRatio === state.textZoneRatio;
+          button.hidden = false;
+          button.disabled = false;
+          button.style.removeProperty("grid-column");
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+
+        const slider = $("density");
+        const options = allowedDensities();
+        slider.min = options[0] || densityLimits().min;
+        slider.max = options[options.length - 1] || densityLimits().max;
+        slider.step = options.length > 1 ? options[1] - options[0] : 1;
+        slider.value = density();
+        slider.disabled = options.length < 2;
+        const densityRange = options.join(", ").replace(/, ([^,]*)$/, " або $1");
+        $("density-label").textContent = "Масштаб патерну";
+        $("density-hint").textContent = state.distribution === "center"
+          ? `Доступні значення: ${densityRange}. Патерн вирівняно по центру.`
+          : usesSevenLevelRowGradient()
+            ? `Доступні значення: ${densityRange}. Значення 7 показує всі градації.`
+            : `Доступні значення: ${densityRange}.`;
+      });
+    }
+
+    function setFormat(ratio) {
+      if (!formats[ratio]) return;
+      state.ratio = ratio;
+      render();
+    }
+
+    function setDistribution(distribution) {
+      if (!["rows", "matrix", "center"].includes(distribution)) return;
+      state.distribution = distribution;
+      render();
+    }
+
+    function showToast(message) {
+      const toast = $("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function bindColor(pickerId, textId, stateKey) {
+      const picker = $(pickerId);
+      const text = $(textId);
+      picker.addEventListener("input", () => {
+        state[stateKey] = picker.value.toUpperCase();
+        text.value = state[stateKey];
+        render();
+      });
+      text.addEventListener("change", () => {
+        const color = validHex(text.value);
+        if (!color) {
+          text.value = state[stateKey];
+          showToast("Введи HEX у форматі #A9B83E");
+          return;
+        }
+        state[stateKey] = color;
+        picker.value = color;
+        text.value = color;
+        render();
+      });
+    }
+
+    function serializedSvg() {
+      const current = format();
+      const clone = svg.cloneNode(true);
+      clone.removeAttribute("style");
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      clone.setAttribute("width", current.svgWidth || current.width);
+      clone.setAttribute("height", current.svgHeight || current.height);
+      return `<?xml version="1.0" encoding="UTF-8"?>\n${clone.outerHTML}`;
+    }
+
+    function fileName(extension) {
+      const zonePosition = state.textZoneAxis === "vertical"
+        ? state.invertTextZone ? "right" : "left"
+        : state.invertTextZone ? "bottom" : "top";
+      const zone = state.textZoneEnabled
+        ? `-text-${state.textZoneRatio.replace(":", "x")}-${state.textZoneAxis}-${zonePosition}`
+        : "";
+      return `dr-savych-pattern-${state.ratio.replace(":", "x")}-${state.distribution}${zone}.${extension}`;
+    }
+
+    function downloadBlob(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportPng() {
+      const current = format();
+      const scale = 2;
+      const exportWidth = current.width * scale;
+      const exportHeight = current.height * scale;
+      const source = serializedSvg();
+      const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, exportWidth, exportHeight);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(png => {
+          if (!png) return;
+          downloadBlob(png, fileName("png").replace(/\.png$/, "@2x.png"));
+          showToast(`PNG ×2 · ${exportWidth} × ${exportHeight} готовий`);
+        }, "image/png");
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        showToast("Не вдалося створити PNG");
+      };
+      image.src = url;
+    }
+
+    function syncControls() {
+      $("background-color").value = state.background;
+      $("background-hex").value = state.background;
+      $("line-color").value = state.line;
+      $("line-hex").value = state.line;
+    }
+
+    function registerAgentTool() {
+      const context = document.modelContext;
+      if (!context?.registerTool) return;
+      try {
+        Promise.resolve(context.registerTool({
+          name: "configure_pattern",
+          title: "Налаштувати патерн",
+          description: "Змінює формат, композицію, масштаб, вільну зону для тексту та кольори патерна.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              aspectRatio: { type: "string", enum: ["1:1", "4:5", "9:16", "16:9", "a4"] },
+              distribution: { type: "string", enum: ["rows", "matrix", "center"] },
+              density: { type: "integer", minimum: 3, maximum: 11 },
+              invertCenter: { type: "boolean" },
+              textZoneEnabled: { type: "boolean" },
+              textZoneAxis: { type: "string", enum: ["horizontal", "vertical"] },
+              textZoneRatio: { type: "string", enum: ["1:1", "1:3", "3:1", "3:2", "2:3"] },
+              invertTextZone: { type: "boolean" },
+              textZoneBackground: { type: "string", enum: ["#FBFBFB", "#0D211A", "#8AA8E5"] },
+              background: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+              line: { type: "string", pattern: "^#[0-9A-Fa-f]{6}$" },
+              showGrid: { type: "boolean" }
+            },
+            additionalProperties: false
+          },
+          annotations: { readOnlyHint: false, untrustedContentHint: false },
+          execute(input) {
+            if (!input || typeof input !== "object" || Array.isArray(input)) {
+              throw new Error("Очікується об’єкт із параметрами.");
+            }
+            if (input.aspectRatio !== undefined) {
+              if (!formats[input.aspectRatio]) throw new Error("Непідтримуваний формат.");
+              state.ratio = input.aspectRatio;
+            }
+            if (input.distribution !== undefined) {
+              if (!["rows", "matrix", "center"].includes(input.distribution)) throw new Error("Непідтримуваний розподіл.");
+              state.distribution = input.distribution;
+            }
+            if (input.density !== undefined) {
+              const limits = densityLimits();
+              state.densities[state.ratio][state.distribution] = normalizeDensity(input.density, limits);
+            }
+            if (input.invertCenter !== undefined) state.invertCenter = Boolean(input.invertCenter);
+            if (input.textZoneEnabled !== undefined) state.textZoneEnabled = Boolean(input.textZoneEnabled);
+            if (input.textZoneAxis !== undefined) {
+              if (!["horizontal", "vertical"].includes(input.textZoneAxis)) throw new Error("Непідтримуваний напрям поділу.");
+              state.textZoneAxis = input.textZoneAxis;
+            }
+            if (input.textZoneRatio !== undefined) {
+              if (!TEXT_ZONE_RATIOS[input.textZoneRatio]) throw new Error("Непідтримувана пропорція зони тексту.");
+              state.textZoneRatio = input.textZoneRatio;
+            }
+            if (input.invertTextZone !== undefined) state.invertTextZone = Boolean(input.invertTextZone);
+            if (input.textZoneBackground !== undefined) {
+              const color = validHex(input.textZoneBackground);
+              if (!["#FBFBFB", "#0D211A", "#8AA8E5"].includes(color)) {
+                throw new Error("Непідтримуваний колір вільної зони.");
+              }
+              state.textZoneBackground = color;
+            }
+            if (input.background !== undefined) {
+              const color = validHex(input.background);
+              if (!color) throw new Error("Некоректний колір тла.");
+              state.background = color;
+            }
+            if (input.line !== undefined) {
+              const color = validHex(input.line);
+              if (!color) throw new Error("Некоректний колір ліній.");
+              state.line = color;
+            }
+            if (input.showGrid !== undefined) state.showGrid = Boolean(input.showGrid);
+            syncControls();
+            render();
+            const result = patternMarkup();
+            return {
+              aspectRatio: state.ratio,
+              distribution: state.distribution,
+              density: density(),
+              invertCenter: state.invertCenter,
+              textZoneEnabled: state.textZoneEnabled,
+              textZoneAxis: state.textZoneAxis,
+              textZoneRatio: state.textZoneRatio,
+              invertTextZone: state.invertTextZone,
+              textZoneBackground: state.textZoneBackground,
+              grid: `${result.cols}x${result.rows}`,
+              background: state.background,
+              line: state.line
+            };
+          }
+        })).catch(() => {});
+      } catch {}
+    }
+
+    document.querySelectorAll(".format-button").forEach(button => {
+      button.addEventListener("click", () => setFormat(button.dataset.ratio));
+    });
+
+    document.querySelectorAll(".distribution-button").forEach(button => {
+      button.addEventListener("click", () => setDistribution(button.dataset.distribution));
+    });
+
+    $("density").addEventListener("input", event => {
+      state.densities[state.ratio][state.distribution] = normalizeDensity(event.target.value);
+      render();
+    });
+
+    $("center-invert").addEventListener("click", () => {
+      state.invertCenter = !state.invertCenter;
+      render();
+    });
+
+    $("text-zone-enabled").addEventListener("click", () => {
+      state.textZoneEnabled = !state.textZoneEnabled;
+      render();
+    });
+
+    document.querySelectorAll(".zone-ratio-button").forEach(button => {
+      button.addEventListener("click", () => {
+        if (!TEXT_ZONE_RATIOS[button.dataset.textZoneRatio]) return;
+        state.textZoneRatio = button.dataset.textZoneRatio;
+        render();
+      });
+    });
+
+    document.querySelectorAll(".zone-axis-button").forEach(button => {
+      button.addEventListener("click", () => {
+        if (!["horizontal", "vertical"].includes(button.dataset.textZoneAxis)) return;
+        state.textZoneAxis = button.dataset.textZoneAxis;
+        render();
+      });
+    });
+
+    document.querySelectorAll(".zone-background-button").forEach(button => {
+      button.addEventListener("click", () => {
+        const color = validHex(button.dataset.textZoneBackground);
+        if (!["#FBFBFB", "#0D211A", "#8AA8E5"].includes(color)) return;
+        state.textZoneBackground = color;
+        render();
+      });
+    });
+
+    $("text-zone-invert").addEventListener("click", () => {
+      state.invertTextZone = !state.invertTextZone;
+      render();
+    });
+
+    $("show-grid").addEventListener("click", () => {
+      state.showGrid = !state.showGrid;
+      render();
+    });
+
+    bindColor("background-color", "background-hex", "background");
+    bindColor("line-color", "line-hex", "line");
+
+    $("download-svg").addEventListener("click", () => {
+      downloadBlob(new Blob([serializedSvg()], { type: "image/svg+xml;charset=utf-8" }), fileName("svg"));
+      showToast("SVG готовий");
+    });
+
+    $("download-png").addEventListener("click", exportPng);
+
+    $("reset").addEventListener("click", () => {
+      state.ratio = defaults.ratio;
+      state.densities = cloneDensities();
+      state.distribution = defaults.distribution;
+      state.invertCenter = defaults.invertCenter;
+      state.textZoneEnabled = defaults.textZoneEnabled;
+      state.textZoneAxis = defaults.textZoneAxis;
+      state.textZoneRatio = defaults.textZoneRatio;
+      state.invertTextZone = defaults.invertTextZone;
+      state.textZoneBackground = defaults.textZoneBackground;
+      state.background = defaults.background;
+      state.line = defaults.line;
+      state.showGrid = defaults.showGrid;
+      syncControls();
+      render();
+      showToast("Параметри скинуто");
+    });
+
+    registerAgentTool();
+    render();
+  </script>
+</body>
+</html>
